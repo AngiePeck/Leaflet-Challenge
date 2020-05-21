@@ -2,21 +2,30 @@
 var queryUrl = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2020-4-15&endtime=2020-05-01&minmagnitude=3";
 
 // Perform a GET request to the query URL
+var earthquakeCache;
 d3.json(queryUrl).then (function(data) {
+    earthquakeCache = data;
   // Once we get a response, send the data.features object to the createFeatures function
   createFeatures(data.features);
 });
-
 function getColor(mag) {
-    switch (mag) {
-        case mag >= 6:
-            return "red";
-        case mag >= 5:
-            return "orange";
-        case mag >= 4.5:
-            return "yellow";
-    } 
+    var magnum = parseFloat(mag);
+    var color = "blue";
+    if (magnum > 6) {
+        color = "red";
+    }
+    else if (magnum > 5) {
+        color = "orange";
+    }
+    else if (magnum > 4) {
+        color = "yellow";
+    }
+    else if (magnum >= 3) {
+        color = "green";
+    }
+    return color;
 }
+
 function createFeatures(earthquakeData) {
   // Define a function we want to run once for each feature in the features array
   // Give each feature a popup describing the place and time of the earthquake
@@ -31,8 +40,8 @@ function createFeatures(earthquakeData) {
             return L.circleMarker(latlong, {
             fillColor : getColor(feature.properties.mag),
             fillOpacity : .8,
-            color : "red",
-            weight : 0.5,
+            color : "black",
+            weight : 0.3,
             radius : (feature.properties.mag)**1.5
         });
     }
@@ -92,29 +101,25 @@ function createMap(earthquakes, plates) {
     collapsed: false
   }).addTo(myMap);
 
-  // Set up the legend
-  var legend = L.control({ position: "bottomright" });
-  legend.onAdd = function() {
-    var div = L.DomUtil.create("div", "info legend");
-    // var limits = geojson.options.limits;
-    // var colors = geojson.options.colors;
-    // var labels = [];
+  
+  var legend = L.control({position: 'bottomright'});
 
-    // Add min & max
-    // var legendInfo = "<h1>Median Income</h1>" +
-    //   "<div class=\"labels\">" +
-    //     "<div class=\"min\">" + limits[0] + "</div>" +
-    //     "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
-    //   "</div>";
-
-    div.innerHTML = legendInfo;
-    limits.forEach(function(limit, index) {
-      labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
-    });
-    div.innerHTML += "<ul>" + labels.join("") + "</ul>";
-    return div;
+  legend.onAdd = function (map) {
+  
+      var div = L.DomUtil.create('div', 'info legend'),
+          magnitudes = [3,4,5,6],
+          labels = [];
+  
+      // loop through our magnitudes and generate a label with a colored square for each interval
+      for (var i = 0; i < magnitudes.length; i++) {
+          div.innerHTML +=
+              '<i style="background:' + getColor(magnitudes[i] + 1) + '"></i> ' +
+              magnitudes[i] + (magnitudes[i + 1] ? '&ndash;' + magnitudes[i + 1] + '<br>' : '+');
+      }
+  
+      return div;
   };
-  // Adding legend to the map
+  
   legend.addTo(myMap);
 }
 
